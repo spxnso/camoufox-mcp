@@ -1,1 +1,49 @@
-IyBzeW50YXg9ZG9ja2VyL2RvY2tlcmZpbGU6MQojIENvb2xpZnkgdmFyaWFudDogYnVpbGRzIHRoaXMgcmVwbyBhbmQgZXhwb3NlcyB0aGUgc3RkaW8gTUNQIHNlcnZlciBvdmVyIFNTRQojIHZpYSBzdXBlcmdhdGV3YXkgb24gMC4wLjAuMDo4MDgwIChlbmRwb2ludDogL3NzZSkgZm9yIE1ldGFNQ1AuCgpGUk9NIG5vZGU6MjItYm9va3dvcm0gQVMgYnVpbGRlcgoKUlVOIGFwdC1nZXQgdXBkYXRlICYmIGFwdC1nZXQgaW5zdGFsbCAteSAtLW5vLWluc3RhbGwtcmVjb21tZW5kcyBcCiAgICBweXRob24zIGJ1aWxkLWVzc2VudGlhbCBnaXQgXAogICAgJiYgcm0gLXJmIC92YXIvbGliL2FwdC9saXN0cy8qCgpXT1JLRElSIC9hcHAKCkNPUFkgcGFja2FnZS5qc29uIHBhY2thZ2UtbG9jay5qc29uKiAuLwpSVU4gbnBtIGNpCgpDT1BZIC4gLgpSVU4gbnBtIHJ1biBidWlsZApSVU4gbnBtIHJ1biBmZXRjaDpjYW1vdWZveAoKUlVOIG5wbSBwcnVuZSAtLW9taXQ9ZGV2CgpGUk9NIG5vZGU6MjItYm9va3dvcm0tc2xpbSBBUyBydW50aW1lCgpSVU4gYXB0LWdldCB1cGRhdGUgJiYgYXB0LWdldCBpbnN0YWxsIC15IC0tbm8taW5zdGFsbC1yZWNvbW1lbmRzIFwKICAgIHRpbmkgeHZmYiB4YXV0aCBcCiAgICBsaWJndGstMy0wIGxpYngxMS14Y2IxIGxpYnhmaXhlczMgbGlieHJhbmRyMiBsaWJ4dHN0NiBsaWJ4MTEtNiBsaWJ4Y29tcG9zaXRlMSBcCiAgICBsaWJhc291bmQyIGxpYmRidXMtZ2xpYi0xLTIgbGlicGNpMyBsaWJ4c3MxIGxpYm5zczMgbGliYXRrMS4wLTAgXAogICAgbGliYXRrLWJyaWRnZTIuMC0wIGxpYmN1cHMyIGxpYmRybTIgbGliZ2JtMSBsaWJhdHNwaTIuMC0wIFwKICAgICYmIHJtIC1yZiAvdmFyL2xpYi9hcHQvbGlzdHMvKgoKUlVOIG5wbSBpbnN0YWxsIC1nIHN1cGVyZ2F0ZXdheQoKUlVOIHVzZXJhZGQgLW0gLXUgMTAwMSBteWFwcHVzZXIKVVNFUiBteWFwcHVzZXIKV09SS0RJUiAvaG9tZS9teWFwcHVzZXIvYXBwCgpDT1BZIC0tZnJvbT1idWlsZGVyIC9hcHAvcGFja2FnZS5qc29uIC9hcHAvcGFja2FnZS1sb2NrLmpzb24qIC4vCkNPUFkgLS1mcm9tPWJ1aWxkZXIgL2FwcC9icm93c2VyLWJ1aWxkcy5qc29uIC4vCkNPUFkgLS1mcm9tPWJ1aWxkZXIgLS1jaG93bj1teWFwcHVzZXI6bXlhcHB1c2VyIC9hcHAvc2NyaXB0cyAuL3NjcmlwdHMKQ09QWSAtLWZyb209YnVpbGRlciAtLWNob3duPW15YXBwdXNlcjpteWFwcHVzZXIgL2FwcC9ub2RlX21vZHVsZXMgLi9ub2RlX21vZHVsZXMKCkNPUFkgLS1mcm9tPWJ1aWxkZXIgLS1jaG93bj1teWFwcHVzZXI6bXlhcHB1c2VyIC9hcHAvZGlzdCAuL2Rpc3QKQ09QWSAtLWZyb209YnVpbGRlciAtLWNob3duPW15YXBwdXNlcjpteWFwcHVzZXIgL3Jvb3QvLmNhY2hlL2NhbW91Zm94IC9ob21lL215YXBwdXNlci8uY2FjaGUvY2Ftb3Vmb3gKCkVOViBQT1JUPTgwODAKRVhQT1NFIDgwODAKCiMgc3VwZXJnYXRld2F5IGJyaWRnZXMgc3RkaW8gPC0+IFNTRSBhbmQgbGlzdGVucyBvbiBhbGwgaW50ZXJmYWNlcy4KRU5UUllQT0lOVCBbIi91c3IvYmluL3RpbmkiLCAiLWciLCAiLS0iLCAieHZmYi1ydW4iLCAiLWEiLCAiLS1zZXJ2ZXItYXJncz0tc2NyZWVuIDAgMTI4MHgxMDI0eDI0IiwgInN1cGVyZ2F0ZXdheSIsICItLXN0ZGlvIiwgIm5vZGUgZGlzdC9pbmRleC5qcyIsICItLXBvcnQiLCAiODA4MCIsICItLWhvc3QiLCAiMC4wLjAuMCJdCg==
+# syntax=docker/dockerfile:1
+# Coolify variant: builds this repo and exposes the stdio MCP server over SSE
+# via supergateway on 0.0.0.0:8080 (endpoint: /sse) for MetaMCP.
+
+FROM node:22-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 build-essential git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+RUN npm run fetch:camoufox
+
+RUN npm prune --omit=dev
+
+FROM node:22-bookworm-slim AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tini xvfb xauth \
+    libgtk-3-0 libx11-xcb1 libxfixes3 libxrandr2 libxtst6 libx11-6 libxcomposite1 \
+    libasound2 libdbus-glib-1-2 libpci3 libxss1 libnss3 libatk1.0-0 \
+    libatk-bridge2.0-0 libcups2 libdrm2 libgbm1 libatspi2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g supergateway
+
+RUN useradd -m -u 1001 myappuser
+USER myappuser
+WORKDIR /home/myappuser/app
+
+COPY --from=builder /app/package.json /app/package-lock.json* ./
+COPY --from=builder /app/browser-builds.json ./
+COPY --from=builder --chown=myappuser:myappuser /app/scripts ./scripts
+COPY --from=builder --chown=myappuser:myappuser /app/node_modules ./node_modules
+
+COPY --from=builder --chown=myappuser:myappuser /app/dist ./dist
+COPY --from=builder --chown=myappuser:myappuser /root/.cache/camoufox /home/myappuser/.cache/camoufox
+
+ENV PORT=8080
+EXPOSE 8080
+
+# supergateway bridges stdio <-> SSE and listens on all interfaces.
+ENTRYPOINT ["/usr/bin/tini", "-g", "--", "xvfb-run", "-a", "--server-args=-screen 0 1280x1024x24", "supergateway", "--stdio", "node dist/index.js", "--port", "8080", "--host", "0.0.0.0"]
