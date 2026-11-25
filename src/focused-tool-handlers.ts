@@ -174,6 +174,7 @@ export async function handleScreenshot(input: ScreenshotToolInput) {
           selector: input.selector,
           type: input.type,
           quality: input.quality,
+          clip: input.clip,
         }),
         title: await page.title(),
       }), "Screenshot");

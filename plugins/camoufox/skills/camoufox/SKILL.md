@@ -191,11 +191,12 @@ Screenshot:
 
 ## Sequence Actions
 
-`browse_sequence` (one round trip) and `browse_session_action` (one action in a live session) both take the same action objects. Available types: `click`, `hover`, `fill`, `type`, `select`, `press`, `waitFor`, `scroll`, `evaluate`.
+`browse_sequence` (one round trip) and `browse_session_action` (one action in a live session) both take the same action objects. Available types: `click`, `hover`, `fill`, `type`, `select`, `press`, `waitFor`, `scroll`, `drag`, `clickAt`, `evaluate`.
 
-Read `references/sequence-actions.md` for every field, `clickMode` (DOM vs pointer), `frame` (acting inside an iframe), and `waitFor` states. Two things to remember up front:
+Read `references/sequence-actions.md` for every field, `clickMode` (DOM vs pointer), `frame` (acting inside an iframe), and `waitFor` states. Things to remember up front:
 
 - Prefer `fill` for setting an input's value; use `type` only when you need real per-keystroke events (delays, key handlers).
+- `drag` (selector- or coordinate-based) and `clickAt` (coordinate click) use a humanized pointer path for sliders and canvas widgets like Datadome; start sessions that use them with `humanize: false`.
 - `evaluate` runs arbitrary JS and is disabled unless the operator sets `CAMOUFOX_MCP_ALLOW_EVALUATE=1` (check `evaluateAllowed` in status first).
 
 ## Interactive Sessions

@@ -69,6 +69,17 @@ export async function captureScreenshot(page: Page, safeUrl: string, options?: S
     quality: type === "jpeg" ? options?.quality : undefined,
   };
 
+  // A caller-supplied clip is viewport-relative, so it cannot describe an
+  // element or a full page; reject those combinations instead of guessing.
+  if (options?.selector && options?.clip) {
+    screenshotMetadata.error = "Screenshot clip cannot be combined with a selector.";
+    return { screenshotMetadata, mimeType };
+  }
+  if (options?.clip && options?.fullPage) {
+    screenshotMetadata.error = "Screenshot clip cannot be combined with fullPage; clip is viewport-relative.";
+    return { screenshotMetadata, mimeType };
+  }
+
   try {
     let buffer: Buffer;
     if (options?.selector) {
@@ -106,6 +117,43 @@ export async function captureScreenshot(page: Page, safeUrl: string, options?: S
       if (clampedClip.width <= 0 || clampedClip.height <= 0) {
         screenshotMetadata.error = "Screenshot selector has no visible area.";
         return { screenshotMetadata, mimeType };
+      }
+
+      buffer = await page.screenshot({
+        ...baseOptions,
+        clip: clampedClip,
+      });
+    } else if (options?.clip) {
+      const requested = options.clip;
+      // Enforce the dimension policy on the requested size, not the clamped
+      // one; clamping would shrink an oversize clip under the limit and
+      // silently bypass the policy (same rule as element captures).
+      if (!isScreenshotAreaAllowed(requested.width, requested.height)) {
+        screenshotMetadata.error = `Screenshot clip exceeds server dimension policy (${MAX_SCREENSHOT_WIDTH}x${MAX_SCREENSHOT_HEIGHT}).`;
+        return { screenshotMetadata, mimeType };
+      }
+
+      // Playwright rejects clips that fall outside the viewport, so intersect
+      // with it like an element capture does; shrinking the size (not just the
+      // origin) keeps the capture on the requested region.
+      const clampedClip = visibleElementClip(
+        {
+          x: Math.floor(requested.x),
+          y: Math.floor(requested.y),
+          width: Math.floor(requested.width),
+          height: Math.floor(requested.height),
+        },
+        page.viewportSize(),
+      );
+      if (clampedClip.width <= 0 || clampedClip.height <= 0) {
+        screenshotMetadata.error = "Screenshot clip has no visible area in the viewport.";
+        return { screenshotMetadata, mimeType };
+      }
+
+      screenshotMetadata.clip = clampedClip;
+      if (clampedClip.x !== requested.x || clampedClip.y !== requested.y
+        || clampedClip.width !== requested.width || clampedClip.height !== requested.height) {
+        screenshotMetadata.clipped = true;
       }
 
       buffer = await page.screenshot({

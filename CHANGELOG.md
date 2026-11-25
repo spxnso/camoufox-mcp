@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `browse_sequence` and `browse_session_action` gained a `drag` action: selector-based (`selector` with `targetSelector`, `to`, or `deltaX`/`deltaY`) or coordinate-based (`from` + `to`) drags with a hardened humanized gesture — 40-80 `pointermove` events over 800-1500 ms with variable velocity, a slight vertical arc, ±3 px jitter, a 100-300 ms hold after `pointerdown`, and a 3-5 px overshoot corrected before `pointerup`. A `browse_sequence` containing `drag`/`clickAt` launches with the launcher's per-move `humanize` disabled unless `humanize` is set explicitly, so the action's own pointer path keeps its timing.
+- New `clickAt` action for coordinate-based clicks (`x`, `y`): `pointerdown`+`pointerup` at the exact coordinate with the same 100-300 ms humanized hold, for canvas-rendered widgets such as Datadome sliders that have no DOM element to click.
+- Screenshot output gained an optional `clip: {x, y, width, height}` region (top-level on `browse_screenshot`, `screenshotOptions.clip` on `browse`/`browse_sequence`). The region is viewport-relative, bounded by the server dimension policy, intersected with the viewport, and reported as `clip`/`clipped` in the screenshot metadata. It cannot be combined with `selector` or `fullPage`.
+
 ## [2.7.3] - 2026-11-23
 
 ### Changed

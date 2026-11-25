@@ -487,3 +487,74 @@ class SessionCases:
             close_response = self._call_tool("browse_session_close", {"sessionId": session_id}, timeout=30)
             assert close_response, close_response
         print("CallTool session delayed private request rejection test passed.")
+
+    def test_call_tool_session_action_drag_and_click_at(self):
+        print("--- Running Test: Call Tool - Session Action Drag And ClickAt ---")
+        # drag/clickAt emit their own humanized pointer path, so the session
+        # runs with the launcher's per-move humanize off (see docs).
+        start_response = self._run_tool("browse_session_start", {"humanize": False}, timeout=90)
+        session_id = self.get_tool_payload(start_response)["sessionId"]
+        try:
+            html = """<!doctype html>
+<html>
+<body style="margin:0">
+  <div id="pad" style="position:absolute;left:0;top:0;width:400px;height:400px;background:#eee">
+    <div id="handle" style="position:absolute;left:20px;top:20px;width:30px;height:30px;background:blue"></div>
+  </div>
+  <p id="result" style="position:absolute;top:420px">none</p>
+  <script>
+    const handle = document.getElementById('handle');
+    const pad = document.getElementById('pad');
+    const result = document.getElementById('result');
+    let dragging = false, startX = 0, startLeft = 0;
+    handle.addEventListener('pointerdown', (e) => {
+      dragging = true; startX = e.clientX; startLeft = parseInt(handle.style.left) || 0;
+      e.preventDefault();
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (dragging) handle.style.left = (startLeft + e.clientX - startX) + 'px';
+    });
+    window.addEventListener('pointerup', (e) => {
+      if (dragging) { dragging = false; result.textContent = 'drag ' + (startLeft + e.clientX - startX); }
+    });
+    pad.addEventListener('pointerdown', (e) => {
+      if (e.target === pad) result.textContent = 'click ' + e.clientX + ' ' + e.clientY;
+    });
+  </script>
+</body>
+</html>"""
+            navigate = self._run_tool("browse_session_navigate", {
+                "sessionId": session_id,
+                "url": self._fixture_url(html),
+                "maxChars": 1000
+            }, timeout=90)
+            assert "none" in self.get_tool_payload(navigate)["text"]
+
+            # Selector drag: handle center x=35, +120 px ends at x=155, so the
+            # handle moves from left 20 to 140.
+            action = self._run_tool("browse_session_action", {
+                "sessionId": session_id,
+                "action": {"type": "drag", "selector": "#handle", "deltaX": 120, "timeout": 8000},
+                "maxChars": 1000,
+                "maxElements": 20
+            }, timeout=90)
+            action_payload = self.get_tool_payload(action)
+            assert action_payload["action"]["status"] == "ok", action
+            assert action_payload["action"]["type"] == "drag"
+            assert "drag 140" in action_payload["snapshot"]["text"], action_payload
+
+            # Coordinate click on the canvas-like pad area.
+            action = self._run_tool("browse_session_action", {
+                "sessionId": session_id,
+                "action": {"type": "clickAt", "x": 300, "y": 300, "timeout": 5000},
+                "maxChars": 1000,
+                "maxElements": 20
+            }, timeout=90)
+            action_payload = self.get_tool_payload(action)
+            assert action_payload["action"]["status"] == "ok", action
+            assert action_payload["action"]["type"] == "clickAt"
+            assert "click 300 300" in action_payload["snapshot"]["text"], action_payload
+        finally:
+            close_response = self._run_tool("browse_session_close", {"sessionId": session_id}, timeout=30)
+            assert self.get_tool_payload(close_response)["closed"] is True
+        print("CallTool session action drag and clickAt test passed.")

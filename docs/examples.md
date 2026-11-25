@@ -104,7 +104,7 @@ The AI can use advanced parameters like:
 - `selector`: Limit extraction to one CSS selector
 - `viewport`: Custom browser dimensions
 - `screenshot`: Capture a screenshot
-- `screenshotOptions`: Capture full-page, selector-only, PNG, or JPEG screenshots
+- `screenshotOptions`: Capture full-page, selector-only, region (`clip`), PNG, or JPEG screenshots
 - `includeConsole`: Return bounded console diagnostics
 - `includeNetwork`: Return bounded network diagnostics
 - `humanize`: Enable realistic mouse movements
