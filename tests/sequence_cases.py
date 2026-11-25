@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import threading
 import time
@@ -229,3 +230,131 @@ class SequenceCases:
         assert response and response.get("result", {}).get("isError"), f"Evaluate action was not rejected: {response}"
         assert "evaluate action is disabled" in self.get_tool_text(response).lower()
         print("CallTool sequence evaluate rejection test passed.")
+
+    def test_call_tool_sequence_drag_slider_handle(self):
+        print("--- Running Test: Call Tool - Browse Sequence Drag Slider Handle ---")
+        # A pointer-event slider: the handle only follows real pointer input,
+        # and the result records the final pointerup position and how many
+        # pointermove events the drag produced.
+        html = """<!doctype html>
+<html>
+<body style="margin:0">
+  <div id="track" style="position:absolute;left:0;top:0;width:400px;height:40px;background:#ddd">
+    <div id="handle" style="position:absolute;left:20px;top:5px;width:30px;height:30px;background:blue"></div>
+  </div>
+  <p id="result" style="position:absolute;top:60px">none</p>
+  <script>
+    const handle = document.getElementById('handle');
+    const result = document.getElementById('result');
+    let dragging = false, startX = 0, startLeft = 0, moves = 0;
+    handle.addEventListener('pointerdown', (e) => {
+      dragging = true; startX = e.clientX; startLeft = parseInt(handle.style.left) || 0; moves = 0;
+      e.preventDefault();
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (dragging) { moves += 1; handle.style.left = (startLeft + e.clientX - startX) + 'px'; }
+    });
+    window.addEventListener('pointerup', (e) => {
+      if (dragging) { dragging = false; result.textContent = 'drag ' + (startLeft + e.clientX - startX) + ' moves ' + moves; }
+    });
+  </script>
+</body>
+</html>"""
+        response = self._run_sequence({
+            "url": self._fixture_url(html),
+            "actions": [
+                {"type": "drag", "selector": "#handle", "deltaX": 120, "deltaY": 0, "timeout": 8000}
+            ],
+            "maxChars": 2000
+        }, timeout=90)
+        payload = self.get_tool_payload(response)
+        assert payload["actions"][0]["status"] == "ok", payload
+        assert payload["actions"][0]["type"] == "drag"
+        # Handle center is x=35; +120 px lands the pointerup at x=155, so the
+        # handle moves 20 -> 140. The humanized path emits 40-80 moves.
+        assert "drag 140" in payload["text"], f"Expected the slider to follow the drag: {payload}"
+        match = re.search(r"moves (\d+)", payload["text"])
+        assert match and 40 <= int(match.group(1)) <= 80, f"Expected 40-80 pointermove events: {payload}"
+        print("CallTool sequence drag slider handle test passed.")
+
+    def test_call_tool_sequence_drag_coordinates_to_target(self):
+        print("--- Running Test: Call Tool - Browse Sequence Drag Coordinates To Target ---")
+        html = """<!doctype html>
+<html>
+<body style="margin:0">
+  <canvas id="pad" width="400" height="400" style="position:absolute;left:0;top:0"></canvas>
+  <p id="result" style="position:absolute;top:420px">none</p>
+  <script>
+    const pad = document.getElementById('pad');
+    const result = document.getElementById('result');
+    let dragging = false, last = null;
+    pad.addEventListener('pointerdown', (e) => { dragging = true; last = [e.clientX, e.clientY]; });
+    pad.addEventListener('pointermove', (e) => { if (dragging) last = [e.clientX, e.clientY]; });
+    pad.addEventListener('pointerup', (e) => {
+      if (dragging) { dragging = false; result.textContent = 'drop ' + e.clientX + ' ' + e.clientY + ' from ' + last[0] + ' ' + last[1]; }
+    });
+  </script>
+</body>
+</html>"""
+        response = self._run_sequence({
+            "url": self._fixture_url(html),
+            "actions": [
+                {"type": "drag", "from": {"x": 30, "y": 30}, "to": {"x": 250, "y": 200}, "timeout": 8000}
+            ],
+            "maxChars": 2000
+        }, timeout=90)
+        payload = self.get_tool_payload(response)
+        assert payload["actions"][0]["status"] == "ok", payload
+        assert "drop 250 200" in payload["text"], f"Expected the coordinate drag to end on target: {payload}"
+        print("CallTool sequence drag coordinates test passed.")
+
+    def test_call_tool_sequence_click_at_canvas_widget(self):
+        print("--- Running Test: Call Tool - Browse Sequence ClickAt Canvas Widget ---")
+        # A canvas-only widget: no DOM element receives a click handler, only
+        # pointer events on the canvas record the press.
+        html = """<!doctype html>
+<html>
+<body style="margin:0">
+  <canvas id="pad" width="300" height="300" style="position:absolute;left:0;top:0"></canvas>
+  <p id="result" style="position:absolute;top:320px">none</p>
+  <script>
+    const pad = document.getElementById('pad');
+    const result = document.getElementById('result');
+    let downAt = null;
+    pad.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
+    pad.addEventListener('pointerup', (e) => {
+      if (downAt) result.textContent = 'click down ' + downAt[0] + ' ' + downAt[1] + ' up ' + e.clientX + ' ' + e.clientY;
+    });
+  </script>
+</body>
+</html>"""
+        response = self._run_sequence({
+            "url": self._fixture_url(html),
+            "actions": [
+                {"type": "clickAt", "x": 100, "y": 120, "timeout": 5000}
+            ],
+            "maxChars": 2000
+        }, timeout=90)
+        payload = self.get_tool_payload(response)
+        assert payload["actions"][0]["status"] == "ok", payload
+        assert payload["actions"][0]["type"] == "clickAt"
+        match = re.search(r"click down (\d+(?:\.\d+)?) (\d+(?:\.\d+)?) up (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)", payload["text"])
+        assert match, f"Expected a pointerdown+pointerup pair: {payload}"
+        down_x, down_y, up_x, up_y = (float(g) for g in match.groups())
+        assert abs(down_x - 100) <= 3 and abs(down_y - 120) <= 3, f"pointerdown near the requested coordinate: {payload['text']}"
+        assert abs(up_x - 100) <= 3 and abs(up_y - 120) <= 3, f"pointerup near the requested coordinate: {payload['text']}"
+        print("CallTool sequence clickAt canvas widget test passed.")
+
+    def test_call_tool_sequence_rejects_invalid_drag(self):
+        print("--- Running Test: Call Tool - Browse Sequence Rejects Invalid Drag ---")
+        response = self._call_tool("browse_sequence", {
+            "url": self._example_url(),
+            "actions": [{"type": "drag", "from": {"x": 1, "y": 2}}]
+        }, timeout=30)
+        assert response and response.get("result", {}).get("isError"), f"Invalid drag was not rejected: {response}"
+        response = self._call_tool("browse_sequence", {
+            "url": self._example_url(),
+            "actions": [{"type": "drag", "selector": "#a"}]
+        }, timeout=30)
+        assert response and response.get("result", {}).get("isError"), f"Destination-less drag was not rejected: {response}"
+        print("CallTool sequence invalid drag rejection test passed.")

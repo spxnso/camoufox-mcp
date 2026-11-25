@@ -3,6 +3,10 @@ import chalk from "chalk";
 import { ALLOW_EVALUATE, DEFAULT_ACTION_TIMEOUT_MS, SEQUENCE_TIMEOUT_MS } from "./config.js";
 import type { SequenceAction } from "./schemas.js";
 import type { ClickMode, RequestGuard, SequenceActionResult } from "./types.js";
+
+import { humanizedClickAt, humanizedDrag } from "./pointer.js";
+
+import type { PointerPoint } from "./pointer.js";
 import { describeError, serializeBounded, withTimeout } from "./utils.js";
 import { settleAndAssertSafe } from "./browser-runtime.js";
 
@@ -97,6 +101,48 @@ export async function activateElement(page: Page, selector: string, timeout: num
   await domClick(locator, remaining());
 }
 
+// Resolve the start and end points of a drag. Selector-based drags anchor at
+// the element's center; coordinate-based drags use the caller's `from`/`to`.
+// One deadline covers both lookups, like activateElement's click stages.
+async function resolveDragEndpoints(
+  page: Page,
+  action: Extract<SequenceAction, { type: "drag" }>,
+  timeout: number,
+): Promise<{ from: PointerPoint; to: PointerPoint }> {
+  const deadline = Date.now() + timeout;
+  const remaining = (): number => Math.max(1, deadline - Date.now());
+
+  const centerOf = async (selector: string): Promise<PointerPoint> => {
+    const locator = resolveLocator(page, selector, action.frame);
+    await locator.waitFor({ state: "visible", timeout: remaining() });
+    const box = await withTimeout(locator.boundingBox(), remaining(), "Drag action");
+    if (!box) {
+      throw new Error(`Drag selector has no bounding box: ${selector}`);
+    }
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  };
+
+  let from: PointerPoint;
+  if (action.selector) {
+    from = await centerOf(action.selector);
+  } else if (action.from) {
+    from = { x: action.from.x, y: action.from.y };
+  } else {
+    throw new Error("Drag action requires 'selector' or 'from'.");
+  }
+
+  let to: PointerPoint;
+  if (action.to) {
+    to = { x: action.to.x, y: action.to.y };
+  } else if (action.targetSelector) {
+    to = await centerOf(action.targetSelector);
+  } else {
+    to = { x: from.x + (action.deltaX ?? 0), y: from.y + (action.deltaY ?? 0) };
+  }
+
+  return { from, to };
+}
+
 export async function runSequenceAction(
   page: Page,
   action: SequenceAction,
@@ -185,6 +231,16 @@ export async function runSequenceAction(
         await withTimeout(page.mouse.wheel(action.deltaX, action.deltaY), timeout, "Scroll action");
       }
       return { index, type: action.type, selector: action.selector, status: "ok", durationMs: Date.now() - started };
+
+    case "drag": {
+      const { from, to } = await resolveDragEndpoints(page, action, timeout);
+      await humanizedDrag(page.mouse, from, to, timeout);
+      return { index, type: action.type, selector: action.selector, status: "ok", durationMs: Date.now() - started };
+    }
+
+    case "clickAt":
+      await humanizedClickAt(page.mouse, action.x, action.y, timeout);
+      return { index, type: action.type, status: "ok", durationMs: Date.now() - started };
 
     case "evaluate": {
       if (!ALLOW_EVALUATE) {

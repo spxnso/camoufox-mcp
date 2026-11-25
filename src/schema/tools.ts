@@ -9,7 +9,7 @@ import {
   MAX_SEQUENCE_ACTIONS,
 } from "../config.js";
 import type { WindowSize } from "../types.js";
-import { captchaPolicySchema, screenshotOptionsSchema, stealthProfileSchema, viewportSchema, windowSchema, proxySchema } from "./primitives.js";
+import { captchaPolicySchema, clipSchema, pointSchema, screenshotOptionsSchema, stealthProfileSchema, viewportSchema, windowSchema, proxySchema } from "./primitives.js";
 
 export const commonBrowserOptionShape = {
   os: z.enum(["windows", "macos", "linux"]).optional().describe("Optional OS to spoof. Can be 'windows', 'macos', or 'linux'. If not specified, will rotate between all OS types."),
@@ -123,6 +123,33 @@ export const sequenceActionSchema = z.discriminatedUnion("type", [
     timeout: actionTimeoutSchema,
   }),
   z.object({
+    type: z.literal("drag"),
+    selector: z.string().max(2000).optional().describe("Source element; the drag starts at its center. Use 'from' instead for coordinate-based drags (e.g. canvas sliders)."),
+    frame: frameSchema,
+    targetSelector: z.string().max(2000).optional().describe("Optional drop target; the drag ends at its center."),
+    from: pointSchema.optional().describe("Viewport-relative start coordinate. Exactly one of 'selector' or 'from' is required."),
+    to: pointSchema.optional().describe("Viewport-relative end coordinate. Required when 'from' is set; otherwise an optional destination override."),
+    deltaX: z.number().min(-10000).max(10000).optional().describe("Horizontal drag distance in pixels when neither 'to' nor 'targetSelector' is given."),
+    deltaY: z.number().min(-10000).max(10000).optional().describe("Vertical drag distance in pixels when neither 'to' nor 'targetSelector' is given."),
+    timeout: actionTimeoutSchema,
+  }).superRefine((action, ctx) => {
+    if (Boolean(action.selector) === Boolean(action.from)) {
+      ctx.addIssue({ code: "custom", message: "Drag action requires exactly one of 'selector' or 'from'." });
+    }
+    if (action.from && !action.to) {
+      ctx.addIssue({ code: "custom", path: ["to"], message: "A coordinate drag ('from') requires 'to'." });
+    }
+    if (action.selector && !action.to && !action.targetSelector && action.deltaX === undefined && action.deltaY === undefined) {
+      ctx.addIssue({ code: "custom", message: "A selector drag requires a destination: 'to', 'targetSelector', or 'deltaX'/'deltaY'." });
+    }
+  }).describe("Humanized pointer drag: 40-80 pointermove events over 800-1500 ms with variable velocity, a slight vertical arc, ±3 px jitter, a 100-300 ms hold after pointerdown, and a 3-5 px overshoot corrected before pointerup."),
+  z.object({
+    type: z.literal("clickAt"),
+    x: z.number().min(-100000).max(100000).describe("Viewport-relative x coordinate to click."),
+    y: z.number().min(-100000).max(100000).describe("Viewport-relative y coordinate to click."),
+    timeout: actionTimeoutSchema,
+  }).describe("Humanized coordinate click: pointerdown+pointerup at exactly (x, y) with a 100-300 ms hold. Use for canvas-rendered widgets (e.g. Datadome sliders) that have no DOM element to click."),
+  z.object({
     type: z.literal("evaluate"),
     expression: z.string().max(4000),
     timeout: actionTimeoutSchema,
@@ -178,6 +205,7 @@ export const screenshotToolShape = {
   fullPage: z.boolean().optional().default(false).describe("Capture the full page instead of only the viewport."),
   type: z.enum(["png", "jpeg"]).optional().default("png").describe("Screenshot image type."),
   quality: z.number().int().min(1).max(100).optional().describe("JPEG quality from 1-100. Ignored for PNG."),
+  clip: clipSchema.optional(),
 };
 
 export const consoleToolShape = {

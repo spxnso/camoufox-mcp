@@ -211,8 +211,16 @@ export async function handleSequence(input: SequenceToolInput) {
     return buildToolError(`Sequence timeout budget exceeds server policy (${SEQUENCE_TIMEOUT_MS}ms).`);
   }
 
+  // drag/clickAt emit their own humanized pointer path (40-80 pointermove
+  // events). The launcher's humanize adds a per-move gesture on top of every
+  // one of those calls, multiplying the event stream and blowing the action
+  // timeout, so unless the caller explicitly chose humanize, run this launch
+  // with it off; the pointer actions humanize themselves.
+  const hasPointerPathAction = input.actions.some((action) => action.type === "drag" || action.type === "clickAt");
+  const launchInput = hasPointerPathAction && input.humanize === undefined ? { ...input, humanize: false } : input;
+
   try {
-    return await runBrowserOperation("browse sequence", input, async ({
+    return await runBrowserOperation("browse sequence", launchInput, async ({
       page,
       response,
       requestGuard,

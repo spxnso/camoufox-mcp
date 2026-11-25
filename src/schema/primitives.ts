@@ -40,11 +40,27 @@ export const windowSchema = z.preprocess(
   }).optional(),
 ).describe("Set fixed window size [width, height] instead of random generation. An empty array [] is accepted and treated as if the window parameter was not specified.");
 
+export const pointSchema = z.object({
+  x: z.number().min(-100000).max(100000).describe("Viewport-relative x coordinate in CSS pixels."),
+  y: z.number().min(-100000).max(100000).describe("Viewport-relative y coordinate in CSS pixels."),
+});
+
+// Viewport-relative capture region. The absolute maxima match the configurable
+// dimension policy's own bounds (CAMOUFOX_MCP_MAX_SCREENSHOT_WIDTH/HEIGHT);
+// captureScreenshot enforces the configured values at runtime.
+export const clipSchema = z.object({
+  x: z.number().min(-10000).max(100000).describe("Left edge of the capture region in viewport CSS pixels. Clamped into the viewport."),
+  y: z.number().min(-10000).max(100000).describe("Top edge of the capture region in viewport CSS pixels. Clamped into the viewport."),
+  width: z.number().min(1).max(3840).describe("Capture width in pixels (1-3840, bounded by the server dimension policy)."),
+  height: z.number().min(1).max(2160).describe("Capture height in pixels (1-2160, bounded by the server dimension policy)."),
+}).describe("Viewport-relative region to capture instead of the whole viewport. Cannot be combined with 'selector' or 'fullPage'.");
+
 export const screenshotOptionsSchema = z.object({
   fullPage: z.boolean().optional().default(false).describe("Capture the full page instead of only the viewport. Byte and viewport/window limits still apply."),
   selector: z.string().max(2000).optional().describe("Optional CSS selector for element-only screenshots."),
   type: z.enum(["png", "jpeg"]).optional().default("png").describe("Screenshot image type."),
   quality: z.number().int().min(1).max(100).optional().describe("JPEG quality from 1-100. Ignored for PNG."),
+  clip: clipSchema.optional().describe("Optional viewport-relative region to capture. Cannot be combined with 'selector' or 'fullPage'."),
 }).optional().describe("Optional screenshot capture settings. Used only when screenshot is true.");
 
 export const stealthProfileSchema = z.enum(["normal", "privacy", "human_assisted", "fast", "debug"]).optional().default(DEFAULT_STEALTH_PROFILE)

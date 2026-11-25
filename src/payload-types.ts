@@ -7,11 +7,19 @@ export type CaptchaProvider = "recaptcha" | "hcaptcha" | "turnstile" | "cloudfla
 export type NetworkSandboxMode = "unknown" | "declared" | "docker" | "strict-declared";
 export type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
 
+export interface ScreenshotClip {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface ScreenshotOptions {
   fullPage?: boolean;
   selector?: string;
   type?: ScreenshotImageType;
   quality?: number;
+  clip?: ScreenshotClip;
 }
 
 export interface ScreenshotMetadata {
@@ -26,6 +34,7 @@ export interface ScreenshotMetadata {
   clipped?: boolean;
   selector?: string;
   selectorFound?: boolean;
+  clip?: ScreenshotClip;
   error?: string;
 }
 

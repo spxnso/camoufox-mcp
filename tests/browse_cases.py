@@ -197,6 +197,72 @@ class BrowseCases:
         assert content[1].get("mimeType") == "image/jpeg"
         print("CallTool screenshot tool test passed.")
 
+    def test_call_tool_screenshot_clip_region(self):
+        print("--- Running Test: Call Tool - Screenshot Clip Region ---")
+        html = """<!doctype html>
+<html>
+<body style="margin:0">
+  <h1 style="display:inline-block;width:320px;height:80px;margin:0">Clip target</h1>
+</body>
+</html>"""
+        # browse + screenshotOptions.clip captures exactly the requested region.
+        response = self._run_browse({
+            "url": self._fixture_url(html),
+            "viewport": {"width": 800, "height": 600},
+            "screenshot": True,
+            "screenshotOptions": {
+                "clip": {"x": 10, "y": 20, "width": 200, "height": 100}
+            },
+            "maxChars": 1000
+        }, timeout=90)
+        payload = self.get_tool_payload(response)
+        screenshot = payload.get("screenshot", {})
+        assert screenshot.get("included") is True, f"Expected clipped screenshot: {payload}"
+        assert screenshot.get("clip") == {"x": 10, "y": 20, "width": 200, "height": 100}, screenshot
+        assert "clipped" not in screenshot, f"A fully visible clip is not clipped: {screenshot}"
+        width, height = self._png_size(response)
+        assert (width, height) == (200, 100), f"Expected a 200x100 capture: {width}x{height}"
+
+        # browse_screenshot's top-level clip is intersected with the viewport:
+        # 700+200 and 550+100 overhang an 800x600 viewport and get cut.
+        response = self._run_screenshot({
+            "url": self._fixture_url(html),
+            "viewport": {"width": 800, "height": 600},
+            "clip": {"x": 700, "y": 550, "width": 200, "height": 100}
+        }, timeout=90)
+        payload = self.get_tool_payload(response)
+        screenshot = payload["screenshot"]
+        assert screenshot["included"] is True, f"Expected clamped clip screenshot: {payload}"
+        assert screenshot["clip"] == {"x": 700, "y": 550, "width": 100, "height": 50}, screenshot
+        assert screenshot["clipped"] is True, screenshot
+        width, height = self._png_size(response)
+        assert (width, height) == (100, 50), f"Expected a 100x50 capture: {width}x{height}"
+
+        # clip cannot be combined with selector or fullPage; the conflict is
+        # reported in the metadata instead of being silently ignored.
+        response = self._run_screenshot({
+            "url": self._fixture_url(html),
+            "selector": "h1",
+            "clip": {"x": 0, "y": 0, "width": 10, "height": 10}
+        }, timeout=90)
+        screenshot = self.get_tool_payload(response)["screenshot"]
+        assert screenshot["included"] is False, screenshot
+        assert "cannot be combined with a selector" in screenshot["error"], screenshot
+
+        response = self._run_browse({
+            "url": self._fixture_url(html),
+            "screenshot": True,
+            "screenshotOptions": {
+                "fullPage": True,
+                "clip": {"x": 0, "y": 0, "width": 10, "height": 10}
+            },
+            "maxChars": 1000
+        }, timeout=90)
+        screenshot = self.get_tool_payload(response)["screenshot"]
+        assert screenshot["included"] is False, screenshot
+        assert "cannot be combined with fullPage" in screenshot["error"], screenshot
+        print("CallTool screenshot clip region test passed.")
+
     def test_call_tool_console_and_network_summary(self):
         print("--- Running Test: Call Tool - Console And Network Summary ---")
         html = """<!doctype html>

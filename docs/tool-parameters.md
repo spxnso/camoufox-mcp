@@ -36,7 +36,7 @@ All tools share the browser and navigation parameters below:
 | `maxChars` | number | 30000 | Maximum text or HTML characters to return (1000-200000) |
 | `selector` | string | none | CSS selector to limit extraction to one element |
 | `screenshot` | boolean | false | Capture a screenshot of the page |
-| `screenshotOptions` | object | none | Optional `{ fullPage, selector, type, quality }` screenshot settings |
+| `screenshotOptions` | object | none | Optional `{ fullPage, selector, type, quality, clip }` screenshot settings |
 
 `browse_snapshot` also accepts:
 
@@ -50,15 +50,17 @@ All tools share the browser and navigation parameters below:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `actions` | array | required | Up to 25 actions: `click`, `hover`, `fill`, `type`, `select`, `press`, `waitFor`, `scroll`, or env-gated `evaluate` |
+| `actions` | array | required | Up to 25 actions: `click`, `hover`, `fill`, `type`, `select`, `press`, `waitFor`, `scroll`, `drag`, `clickAt`, or env-gated `evaluate` |
 | `outputMode` | enum | 'text' | Final content mode: 'text', 'html', or 'metadata' |
 | `maxChars` | number | 30000 | Maximum final text, HTML, snapshot, or evaluate-result characters |
 | `selector` | string | none | CSS selector to limit final content and snapshot extraction |
 | `maxElements` | number | 100 | Maximum final snapshot elements to return |
 | `screenshot` | boolean | false | Capture a screenshot after all actions finish |
-| `screenshotOptions` | object | none | Optional `{ fullPage, selector, type, quality }` screenshot settings |
+| `screenshotOptions` | object | none | Optional `{ fullPage, selector, type, quality, clip }` screenshot settings |
 
 Click actions accept `clickMode`: `dom` is the default and uses DOM activation for CI/Xvfb stability, `pointer` uses Playwright pointer input, and `auto` first runs a pointer trial that dispatches nothing. If the trial fails (for example, the target is covered), `auto` uses DOM activation. If it passes, `auto` performs the pointer click and reports a failure rather than clicking a second time. One click shares a single `timeout` across all of its stages.
+
+`drag` performs a humanized pointer drag: 40-80 `pointermove` events spread over 800-1500 ms with variable velocity, a slight vertical arc, ±3 px jitter, a 100-300 ms hold after `pointerdown`, and a 3-5 px overshoot that is corrected before `pointerup`. It is selector-based (`selector`, with the drag starting at the element's center and ending at `targetSelector`'s center, at `to`, or at the center plus `deltaX`/`deltaY`) or coordinate-based (`from` + `to` viewport coordinates). Exactly one of `selector` or `from` is required, and a coordinate drag requires `to`. `clickAt` clicks viewport coordinates (`x`, `y`) with `pointerdown`+`pointerup` and the same 100-300 ms hold, for canvas-rendered widgets such as Datadome sliders that have no DOM element to click. Both actions emit their own humanized pointer path, so a `browse_sequence` that contains them launches with the launcher's per-move `humanize` disabled unless you set `humanize` explicitly; in a session, start it with `humanize: false` for the same timing (the launcher's humanize would otherwise add a gesture to every one of the 40-80 moves).
 
 An `evaluate` step is rejected before the browser launches unless `CAMOUFOX_MCP_ALLOW_EVALUATE=1`, so the steps before it do not run.
 
@@ -72,10 +74,12 @@ Focused extractor tools also accept:
 | `browse_forms` | `selector`, `maxForms`, `maxFields` |
 | `browse_outline` | `selector`, `maxItems` |
 | `browse_find` | `query`, `selector`, `maxMatches`, `contextChars` |
-| `browse_screenshot` | `selector`, `fullPage`, `type`, `quality` |
+| `browse_screenshot` | `selector`, `fullPage`, `type`, `quality`, `clip` |
 | `browse_network_summary` | `maxFailures` |
 
 `fullPage` screenshots capture pages up to `CAMOUFOX_MCP_MAX_FULL_PAGE_SCREENSHOT_HEIGHT` (default 10000 px) tall. A taller or wider page is cut at the limit from the top left; the screenshot metadata then reports `clipped: true` with the measured `pageWidth` and `pageHeight`. The byte limit still applies.
+
+`clip: {x, y, width, height}` (in `browse_screenshot` directly, or in `screenshotOptions.clip` for `browse`/`browse_sequence`) captures a viewport-relative region instead of the whole viewport. The region is bounded by the server dimension policy (`CAMOUFOX_MCP_MAX_SCREENSHOT_WIDTH` x `CAMOUFOX_MCP_MAX_SCREENSHOT_HEIGHT`) and intersected with the viewport; the metadata reports the effective `clip` and `clipped: true` when it was reduced. `clip` cannot be combined with `selector` or `fullPage`.
 
 Session tools:
 

@@ -14,6 +14,8 @@ Every action takes an optional `timeout` (milliseconds, 100–60000). Every sele
 - press
 - waitFor
 - scroll
+- drag
+- clickAt
 - evaluate
 
 ## click
@@ -97,6 +99,35 @@ Scroll the page or an element. Useful for lazy-loaded / infinite-scroll content.
 ```
 
 - `deltaX`, `deltaY`: pixels to scroll (−10000–10000). `deltaY` defaults to 600. Provide `selector` to scroll within a specific scrollable element.
+
+## drag
+
+Humanized pointer drag, for sliders and drag-and-drop targets. The gesture emits 40-80 `pointermove` events over 800-1500 ms with variable velocity, a slight vertical arc, ±3 px jitter, a 100-300 ms hold after `pointerdown`, and a 3-5 px overshoot that is corrected before `pointerup`.
+
+```json
+{ "type": "drag", "selector": "#slider-handle", "deltaX": 180, "deltaY": 0 }
+```
+
+```json
+{ "type": "drag", "selector": "#item", "targetSelector": "#dropzone" }
+```
+
+```json
+{ "type": "drag", "from": { "x": 40, "y": 40 }, "to": { "x": 260, "y": 200 } }
+```
+
+- Exactly one of `selector` or `from` is required. `selector` starts the drag at the element's center; `from` is a viewport coordinate.
+- Destination: `to` (viewport coordinate, required with `from`), `targetSelector` (drag onto another element's center), or `deltaX`/`deltaY` (pixels from the start). For a selector drag, at least one of these is required.
+- `frame` works like on other selector actions.
+- `drag`/`clickAt` emit their own humanized pointer path, so a `browse_sequence` containing them launches with the launcher's `humanize` off unless you set `humanize` explicitly; in a session, start it with `"humanize": false` for the same timing.
+
+## clickAt
+
+Humanized click at viewport coordinates — `pointerdown` + `pointerup` at exactly `(x, y)` with a 100-300 ms hold. Use it for canvas-rendered widgets (e.g. Datadome sliders) that have no DOM element to click.
+
+```json
+{ "type": "clickAt", "x": 260, "y": 120 }
+```
 
 ## evaluate
 

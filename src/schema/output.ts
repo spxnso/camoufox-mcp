@@ -17,6 +17,13 @@ const screenshotMetadataShape = {
   clipped: z.boolean().optional(),
   selector: z.string().optional(),
   selectorFound: z.boolean().optional(),
+  // Effective viewport-relative region applied when the caller passed `clip`.
+  clip: z.object({
+    x: z.number(),
+    y: z.number(),
+    width: z.number(),
+    height: z.number(),
+  }).optional(),
   error: z.string().optional(),
 };
 
